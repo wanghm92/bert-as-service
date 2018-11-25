@@ -53,9 +53,10 @@ class BertClient:
         if self.is_valid_input(texts):
             self.socket.send_pyobj(texts)
             response = self.socket.recv_multipart()
-            arr_info, arr_val = jsonapi.loads(response[0]), response[2]
-            X = np.frombuffer(_buffer(arr_val), dtype=arr_info['dtype'])
-            return self.formatter(X.reshape(arr_info['shape']))
+            arr_info, arr_val_x, arr_val_y = jsonapi.loads(response[0]), response[2], response[3]
+            X = np.frombuffer(_buffer(arr_val_x), dtype=arr_info['dtype_x'])
+            Y = np.frombuffer(_buffer(arr_val_y), dtype=arr_info['dtype_y'])
+            return self.formatter(X.reshape(arr_info['shape_x'])), self.formatter(Y.reshape(arr_info['shape_y']))
         else:
             raise AttributeError('"texts" must be "List[str]" and non-empty!')
 
