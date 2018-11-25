@@ -4,15 +4,19 @@
 
 import argparse
 import sys
-
+sys.path.append('/home/hongmin/bert_src')
 from bert.extract_features import PoolingStrategy
-from service.server import BertServer
+# from service.server import BertServer
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-model_dir', type=str, required=True,
+    parser.add_argument('-bert_model_dir', type=str, required=False,
                         help='directory of a pretrained BERT model')
+    parser.add_argument('-my_model_dir', type=str, required=False,
+                        help='directory of a fine-tuned sequence tagging model from BERT')
+    parser.add_argument('-model_dir', type=str, required=False,
+                        help='directory of the original BERT model')
     parser.add_argument('-max_seq_len', type=int, default=25,
                         help='maximum length of a sequence')
     parser.add_argument('-num_worker', type=int, default=1,
@@ -35,6 +39,7 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
+    from service.server_sentence_tagging import BertServer
     server = BertServer(args)
     server.start()
     server.join()
