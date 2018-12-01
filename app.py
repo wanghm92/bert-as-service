@@ -4,7 +4,9 @@
 
 import argparse
 import sys
-sys.path.append('/home/hongmin/bert_src')
+from os.path import expanduser
+HOME = expanduser("~")
+sys.path.append('{}/bert_src'.format(HOME))
 from bert.extract_features import PoolingStrategy
 # from service.server import BertServer
 

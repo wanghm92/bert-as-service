@@ -5,7 +5,9 @@ import multiprocessing
 import os
 import pickle
 import sys
-sys.path.append('/home/hongmin/bert_src')
+from os.path import expanduser
+HOME = expanduser("~")
+sys.path.append('{}/bert_src'.format(HOME))
 import threading
 import time
 from collections import defaultdict
@@ -21,7 +23,8 @@ from zmq.utils import jsonapi
 from bert import tokenization, modeling
 
 # from bert.extract_features import model_fn_builder, convert_lst_to_features
-from bert_sequence_labeling.bert_sentence_tagging import NerProcessor, model_fn_builder, convert_lst_to_features
+from bert_sequence_labeling.bert_sentence_tagging import NerProcessor, BinaryClassificationProcessor\
+    , model_fn_builder, convert_lst_to_features
 from helper import set_logger
 from service.client import BertClient
 
@@ -206,13 +209,18 @@ class BertWorker(Process):
         self.model_fn = model_fn_builder(
             bert_config=modeling.BertConfig.from_json_file(self.config_fp),
             init_checkpoint=self.checkpoint_fp,
-            num_labels=len(NerProcessor.labels)+1,
+            num_labels=len(BinaryClassificationProcessor.labels)+1,
             max_seq_length=self.max_seq_len,
             as_service=True
         )
+
+        session_config = tf.ConfigProto()
+        session_config.gpu_options.allow_growth = True
+        run_config = tf.estimator.RunConfig(model_dir=args.my_model_dir, session_config=session_config)
+
         self.estimator = Estimator(
             model_fn=self.model_fn,
-            model_dir=args.my_model_dir)
+            config=run_config)
 
         os.environ['CUDA_VISIBLE_DEVICES'] = str(self.worker_id)
         self.exit_flag = multiprocessing.Event()
@@ -240,12 +248,12 @@ class BertWorker(Process):
         self.logger.info('ready and listening')
         start_t = time.perf_counter()
         for r in self.estimator.predict(input_fn, yield_single_examples=False):
-            send_ndarray(sink, r['client_id'], r['encodes'], r['original_token_mask'])
+            send_ndarray(sink, r['client_id'], r['predictions'], r['original_token_mask'])
             # send_ndarray(sink, r['client_id'], r['original_token_mask'])
             time_used = time.perf_counter() - start_t
             start_t = time.perf_counter()
             self.logger.info('job %s\tsamples: %4d\tdone: %.2fs' %
-                             (r['client_id'], r['encodes'].shape[0], time_used))
+                             (r['client_id'], r['predictions'].shape[0], time_used))
 
         receiver.close()
         sink.close()
@@ -260,7 +268,8 @@ class BertWorker(Process):
                 if BertClient.is_valid_input(msg):
 
                     # ------- Define Customized convert_lst_to_features ------- #
-                    tmp_f = list(convert_lst_to_features(msg, self.max_seq_len, self.tokenizer, NerProcessor.labels))
+                    tmp_f = list(convert_lst_to_features(msg, self.max_seq_len, self.tokenizer,
+                                                         BinaryClassificationProcessor.labels))
                     yield {
                         'client_id': client_id,
                         'input_ids': [f.input_ids for f in tmp_f],

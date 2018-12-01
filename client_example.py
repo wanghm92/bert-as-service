@@ -9,7 +9,8 @@ if __name__ == '__main__':
     # with open('README.md') as fp:
     #     data = [v for v in fp if v.strip()]
 
-    data = ['Bitar pulled off fine saves whenever they did .', 'then do it\'s right', 'then do it better']
+    data = ['Bitar pulled off fine saves whenever they did .', 'then do it\'s right',
+            'pope michael iii of alexandria ( also known as khail iii ) was the coptic pope of alexandria and patriarch of the see of st. mark ( 880 -- 907 ) .']
 
     # for j in range(1, 20000, 10):
     start_t = time.time()
